@@ -12,9 +12,7 @@
     border-radius: $listbox-border-radius;
     -webkit-box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
           box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
-    margin-top:0px;
-    left:0;
-    top:0;
+    margin-top:0;
 
     > span {
         display: block;
@@ -37,14 +35,13 @@
         padding:0;
         max-height:$listbox-max-height;
         overflow:hidden;
-        padding:0;
 
        > .listbox {
           max-height:none;
       }
     }
    > .select-input{
-       height:30px;
+       height:26px;
        padding:4px 8px;
        font-size:12px;
    }
@@ -52,12 +49,12 @@
 
 .select-toggle {
   text-align:left;
-  padding-right:35px !important;
+  padding-right:35px;
   position:relative;
 }
 .select-toggle:focus {
   outline: 0;
-  .box-shadow(none)
+  @include box-shadow(none)
 }
 .select-toggle.active, 
 .btn.select-toggle.active{
@@ -77,8 +74,7 @@
     padding-left: 5px;
     padding-top: inherit;
     font-weight: normal;
-    border-left: 1px solid transparent;
-    border-color:inherit;
+    border-left: 1px solid inherit;
     top: 0;
     bottom: 0;
 }
@@ -124,9 +120,6 @@
         li{
             display:table-cell;
             width:100%;
-            .select-input{
-               width:100%;
-            }
         }
         li + li{
             display:none;
@@ -145,8 +138,7 @@
         min-width:20px;
         width:auto;
         max-width:200px;
-        padding:0;
-        padding-left:7px;
+        padding: 0 0 0 7px;
         font-size:inherit;
         height:ceil(($input-height-base - 9px));
         line-height:ceil(($input-height-base - 9px));
@@ -187,7 +179,7 @@
             line-height:ceil(($input-height-small - 11px));
         }
         > li > a {
-            padding:0px 7px;
+            padding:0 7px;
         }
     }  
 }
@@ -234,9 +226,6 @@
   .select-option:focus{
        background-color:$listbox-option-hover-bg;
        color:$listbox-option-hover-color;
-    }
-  .select-option:focus{
-       background-color:darken($listbox-option-hover-bg, 6.5%);
     }
   .select-option.selected {
        background-color:$listbox-option-active-bg;
@@ -287,19 +276,4 @@
         position:relative;
         z-index:2;
     } 
-}
-@media (max-width: $screen-xs-max) {
-    .listbox-panel {
-        .scrollable{
-            overflow: scroll !important; 
-            overflow-y: scroll !important; 
-            -webkit-overflow-scrolling: touch;
-            -webkit-box-flex: 1;
-            max-height:300px !important;
-        }
-        .listbox .select-option {
-            padding: 10px 6px 10px 8px;
-            font-size: 20px;
-        }
-    }
 }

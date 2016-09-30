@@ -4,20 +4,25 @@ var selectApp = angular.module('ngQuantum.select', [
       'ngQuantum.popMaster',
       'ngQuantum.scrollbar'
     ])
-    .run(['$templateCache', function ($templateCache) {
+    .run(['$templateCache','$interpolate', function ($templateCache,$interpolate) {
         'use strict';
+        var START = $interpolate.startSymbol();
+        var END   = $interpolate.endSymbol();
         $templateCache.put('select/select.tpl.html',
-          '<div tabindex="-1" class="listbox-panel ng-cloak" role="listbox"><div class="scrollable" role=\"listbox\"><ul tabindex=\"-1\" class=\"listbox\"><li role=\"presentation\" tabindex=\"-1\" ng-repeat=\"match in $matches track by $index\"><span class=\"select-option option-label\"  role=\"option\" tabindex=\"-1\" ng-click=\"$select(match, $event)\" ng-bind=\"match.label\"></span> </li></ul></div></div>'
+          '<div tabindex="-1" class="listbox-panel ng-cloak" role="listbox"><div class="scrollable" role=\"listbox\"><ul tabindex=\"-1\" class=\"listbox\"><li role=\"presentation\" tabindex=\"-1\" ng-repeat=\"match in $matches track by $index\"><span class=\"select-option option-label\"  role=\"option\" tabindex=\"-1\" ng-click=\"$select(match)\" ng-bind=\"match.label\"></span> </li></ul></div></div>'
         );
         $templateCache.put('select/selectgroup.tpl.html',
-          '<div tabindex="-1" role="listbox" class="listbox-panel ng-cloak"><div tabindex="-1" class="scrollable" role="listbox"> <ul tabindex="-1" class="listbox"> <li tabindex="-1" role="presentation" ng-repeat="match in $groupMatches">  <span class="select-option" ng-if="!match.items" role="option" tabindex="-1" ng-disabled="match.disabled" ng-click="$select(match, $event)"> <span class="option-label" ng-bind="match.label"></span> </span> <div tabindex="-1" class="option-group" ng-if="match.items" ng-disabled="match.disabled"> <span class="group-label" ng-bind="match.label"></span> <ul tabindex="-1">  <li tabindex="-1" role="presentation" data-ng-repeat="item in match.items track by $index"> <span class="select-option" role="option" tabindex="-1" ng-disabled="item.disabled" ng-click="$select(item, $event)"><span class="option-label" ng-bind="item.label"></span></span></li></ul></div></li></ul></div></div>'
+          '<div tabindex="-1" role="listbox" class="listbox-panel ng-cloak"><div tabindex="-1" class="scrollable" role="listbox"> <ul tabindex="-1" class="listbox"> <li tabindex="-1" role="presentation" ng-repeat="match in $groupMatches">  <span class="select-option" ng-if="!match.items" role="option" tabindex="-1" ng-disabled="match.disabled" ng-click="$select(match)"> <span class="option-label" ng-bind="match.label"></span> </span> <div tabindex="-1" class="option-group" ng-if="match.items" ng-disabled="match.disabled"> <span class="group-label" ng-bind="match.label"></span> <ul tabindex="-1">  <li tabindex="-1" role="presentation" data-ng-repeat="item in match.items track by $index"> <span class="select-option" role="option" tabindex="-1" ng-disabled="item.disabled" ng-click="$select(item)"><span class="option-label" ng-bind="item.label"></span></span></li></ul></div></li></ul></div></div>'
+        );
+        $templateCache.put('select/charText.tpl.html',
+            'Please enter ' + START + '$remainingChar' + END + ' or more characters'
         );
     }])
     .provider('$select', function () {
         var defaults = this.defaults = {
             effect: 'sing',
             typeClass: 'select',
-            panelClass: false,
+            prefixClass: 'select',
             buttonClass: 'btn-default',
             navClass: 'nav-mixed',
             prefixEvent: 'select',
@@ -41,25 +46,23 @@ var selectApp = angular.module('ngQuantum.select', [
             caseSensitive: true,
             seperator: ', ',
             html: true,
-            clearIcon: '<span class="clear-icon titip-top titip-warning" data-title="Aramayı Temizle"><span class="fic fu-cross"></span></span>',
+            clearIcon: '<span class="clear-icon fu-cross"></span>',
             spinner: '<span class="spin-icon fu-spinner-fan spin"></span>',
             noMatch: 'No result found...',
             placeholder: 'Please select...',
             filterText: 'search...',
+            charTextTemplate: 'select/charText.tpl.html',
             charText: 'Please enter {{$remainingChar}} or more characters',
             searchingText: 'Searching...',
             maxLength: 3,
             maxTextLength: 30,
             minTextLength: 3,
-            compareField:false,
             minChar: 3,
             forceHide:false,
-            selectedRemovable: true,
-            useScrollbar: false,
-            alwaysRemote: true
+            selectedRemovable: true
         };
         this.$get = [
-            '$filter',
+          '$filter',
           '$window',
           '$http',
           '$compile',
@@ -71,29 +74,30 @@ var selectApp = angular.module('ngQuantum.select', [
           '$scrollbar',
           '$lazyRequest',
           '$helpers',
-          '$parse',
-          function ($filter, $window, $http, $compile, $rootScope, $popMaster, $parseOptions, $timeout, $q, $scrollbar, $lazyRequest, $helpers, $parse) {
+          '$interpolate',
+          '$templateCache',
+          function ($filter, $window, $http, $compile, $rootScope, $popMaster, $parseOptions, $timeout, $q, $scrollbar, $lazyRequest, $helpers,$interpolate,$templateCache) {
               var bodyEl = angular.element($window.document.body);
               var isTouch = 'createTouch' in $window.document;
               function SelectFactory(element, controller, config, attr, targetEl) {
                   config = $helpers.parseOptions(attr, config);
                   !config.template && config.grouped && (config.template = defaults.groupTemplate)
                   var $select = {}, inputItem, scrollbar;
-                  var searchInput = angular.element(['<input ng-hide="$hideFilter" no-validate="true" ng-model="filterModel.label" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="{{$placeholder}}" class="select-input form-control" role="combobox" aria-expanded="true"',
+                  var START = $interpolate.startSymbol();
+                  var END   = $interpolate.endSymbol();
+                  var searchInput = angular.element(['<input ng-hide="$hideFilter" ng-model="filterModel.label" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="' + START + '$placeholder' + END+ '" class="select-input form-control" role="combobox" aria-expanded="true"',
                                     , ' aria-autocomplete="list" style="max-width:100%;" />'].join(""))
 
                   var options = angular.extend({}, defaults, config);
-                  var isTouch = $helpers.isTouch();
-                  var parsedOptions;
                   var isTagsInput = controller.isTagsInput = (options.directive == 'nqTagsInput');
                   var clearIcon = options.clearIcon;
                   var noMatch, charLabel, searchLabel;
                   if (options.filterable) {
                       if (angular.isString(options.noMatch) && options.noMatch.length > 2 && options.noMatch.substr(0, 1) == '#')
-                          noMatch = angular.element(options.noMatch);
+                          noMatch = angular.element(document).find(options.noMatch)
                       else
                           noMatch = angular.element('<span>' + options.noMatch + '</span>');
-                      !noMatch.length && (noMatch = null);
+                      !noMatch.length && (noMatch = null)
                       if (noMatch)
                           noMatch.addClass('no-match').attr('ng-show', '$noResultFound')
                   }
@@ -106,10 +110,6 @@ var selectApp = angular.module('ngQuantum.select', [
                       options.effect = false;
                       options.autoHide = false;
                   }
-                  angular.forEach(['onNoMatch'], function (key) {
-                      if (angular.isDefined(options[key]) && !angular.isFunction(options[key]))
-                          options[key] = $parse(options[key]);
-                  })
                   $select = new $popMaster(element, options);
                   var scope = $select.$scope;
                   options = $select.$options = $helpers.observeOptions(attr, $select.$options);
@@ -123,7 +123,7 @@ var selectApp = angular.module('ngQuantum.select', [
                   scope.$placeholder = options.displayType == 'input' ? options.placeholder : options.filterText;
                   scope.$select = function (index, evt) {
                       scope.$$postDigest(function () {
-                          $select.select(index, evt);
+                          $select.select(index);
                       });
                   };
                   var init = $select.init, $target;
@@ -132,7 +132,8 @@ var selectApp = angular.module('ngQuantum.select', [
                       options.displayType !== 'input' && element.addClass(options.buttonClass)
                       $target = $select.$target;
                       if (options.filterable && $target) {
-                          $compile(searchInput)(scope);
+                          $compile(searchInput)(scope)
+
                           if (options.displayType == 'input') {
                               options.navClass && element.addClass(options.navClass);
                               options.inputSize && element.addClass(options.inputSize)
@@ -167,7 +168,13 @@ var selectApp = angular.module('ngQuantum.select', [
                       }
 
                       if (options.remoteSearch) {
-                          charLabel = angular.element('<span ng-show="$remainingChar > 0"></span>').append(options.charText)
+                          /** compatibility code **/
+                          var charText =  options.charText;
+                          if (START != '{{') {
+                                charText = $templateCache.get(options.charTextTemplate);
+                          }
+                          /** compatibility code **/
+                          charLabel = angular.element('<span ng-show="$remainingChar > 0"></span>').append(charText);
                           searchLabel = angular.element('<span class="search-label" ng-show="$dataLoading"></span>').append(options.searchingText)
                           options.spinner && searchLabel.append(options.spinner)
                           $compile(charLabel)(scope)
@@ -183,20 +190,13 @@ var selectApp = angular.module('ngQuantum.select', [
                       searchInput && searchInput.attr('maxlength', options.maxTextLength);
                       if ($target) {
                           var barelement = $target.find('.scrollable');
-                          if (options.useScrollbar || isTouch) {
-                              var barOptions = {
-                                  keyword: false,
-                                  barSize: 'slimmest',
-                                  placementOffset: -2,
-                                  $scope: scope,
-                                  visible: true
-                              }
-                              scrollbar = $scrollbar(barelement, barOptions);
-                          } else {
-                              barelement.addClass('scrollable-y')
+                          var barOptions = {
+                              keyword: false,
+                              barSize: 'slimmest',
+                              placementOffset: -2,
+                              $scope: scope
                           }
-                          options.panelClass && $target.addClass(options.panelClass);
-                          
+                          scrollbar = $scrollbar(barelement, barOptions);
                       }
                   };
                   $select.update = function (matches) {
@@ -208,9 +208,6 @@ var selectApp = angular.module('ngQuantum.select', [
                       $select.updateMatches()
                   };
                   $select.addOption = function (item) {
-                      
-                      if (!item)
-                          return false;
                       var exists = $filter('filter')($select.optionData, function (val, i) {
                           if (!options.caseSensitive && (angular.isString(val.label)))
                               return val.label.toLowerCase() == (angular.isString(item.label) ? item.label.toLowerCase() : item.label)
@@ -239,36 +236,22 @@ var selectApp = angular.module('ngQuantum.select', [
                           scope.$noResultFound ? $select.hide() : $select.show();
                       }
                   };
-                  $select.select = function (item, event) {
-                      var scroolTime = 0;
-                      
-                      if (isTouch && event)
-                          scroolTime = 150;
-                      else {
-                          selectItem(item);
-                          return;
-                      }
-                      setTimeout(function () {
-                          if (scrollbar && scrollbar.isScrolling)
-                              return;
-                          selectItem(item);
-                      }, scroolTime)
-                      
-                  };
-                  function selectItem(item) {
+                  $select.select = function (item) {
                       if (options.multiple) {
                           if (!item.selected && options.maxLength && (controller.$modelValue && controller.$modelValue.length == options.maxLength))
                               return
                           else {
-                              $timeout(function () {
+                              scope.$apply(function () {
                                   item.selected = isTagsInput ? true : item.selected ? false : true;
                                   item.filtered = isTagsInput && item.selected;
-                                  var selected = []
-                                  $filter('filter')($select.optionData, function (opt) {
-                                      opt.selected && selected.push(opt.value);
-                                  })
+                              })
+                              var selected = []
+                              $filter('filter')($select.optionData, function (opt) {
+                                  opt.selected && selected.push(opt.value);
+                              })
+                              $timeout(function () {
                                   controller.$setViewValue(selected);
-                              }, 0);
+                              }, 0)
                           }
                       } else {
                           if (!scope.fistChanged) {
@@ -280,7 +263,9 @@ var selectApp = angular.module('ngQuantum.select', [
                               })
                           }
 
-                          item.selected = true;
+                          scope.$apply(function () {
+                              item.selected = true;
+                          })
                           scope.$lastSelected && !(scope.$lastSelected === item) && (scope.$lastSelected.selected = false);
                           scope.$lastSelected = item;
                           $timeout(function () {
@@ -300,17 +285,14 @@ var selectApp = angular.module('ngQuantum.select', [
                       if (isTagsInput)
                           $select.hide();
                       scope.$emit('$select.select', item);
-                      searchInput.val('');
-                  }
+                      searchInput.val('')
+                  };
                   $select.$getIndex = function (value) {
                       var l = $select.optionData.length, i = l;
-                      if (!l || !angular.isDefined(value))
+                      if (!l)
                           return;
                       for (i = l; i--;) {
-                          if (angular.isObject(value) && options.compareField && angular.equals($select.optionData[i].value[options.compareField], value[options.compareField])) {
-                              break;
-                          }
-                          else if (angular.equals($select.optionData[i].value, value))
+                          if ($select.optionData[i].value === value)
                               break;
                       }
                       if (i < 0)
@@ -370,19 +352,14 @@ var selectApp = angular.module('ngQuantum.select', [
                       $select.$target.css('min-width', element.outerWidth(true));
                       promise && promise.then(function () {
                           if (options.filterable) {
+                              if (options.directive != 'nqTagsInput')
+                                  scope.filterModel = { label: '' };
                               setTimeout(function () {
                                   searchInput.focus();
                               }, 0);
                           }
                           if (scrollbar) {
                               scrollbar.scrollTo('.selected', null, 60);
-                          } else {
-                              var scrollable = $select.$target.find('.scrollable');
-                              var selectedEl = scrollable.find('.selected');
-                              if (selectedEl.length) {
-                                  var lval = selectedEl[0].offsetTop - 90;
-                                  scrollable.scrollTop(lval);
-                              }
                           }
                           $select.$target.on(isTouch ? 'touchstart' : 'mousedown', $select.$onMouseDown);
                       })
@@ -412,65 +389,38 @@ var selectApp = angular.module('ngQuantum.select', [
                   };
 
                   $select.render = function () {
-                      
-                      if (!$select.oldValue && !controller.$modelValue)
-                          return;
-                      if ($select.oldValue && (!controller.$modelValue || (isNaN(controller.$modelValue) && !angular.isObject(controller.$modelValue)) || $select.oldValue == controller.$modelValue))
-                          return;
-                      if (angular.isDefined(controller.$modelValue) && options.modelIsLabel) {
+                      if (controller.$modelValue && options.modelIsLabel) {
                           if ($select.complated) {
                               if (angular.isArray(controller.$modelValue)) {
                                   angular.forEach(controller.$modelValue, function (val) {
-                                      if (!window.isNaN(val))
-                                      var item = { label: val, value: val, selected: true, filtered: isTagsInput };
+                                      var item = { label: val, value: val, selected: true, filtered: isTagsInput }
                                       item = $select.addOption(item)
                                   })
                               }
                               else if (options.modelIsLabel) {
-                                  !window.isNaN(controller.$modelValue) &&
                                   $select.addOption({ label: controller.$modelValue, value: controller.$modelValue, selected: true, filtered: isTagsInput })
 
                               }
                               renderController();
                           }
                       }
-                      else if (angular.isDefined(controller.$modelValue) && options.remoteSearch && !$select.optionData.length) {
-                          if (angular.isObject(controller.$modelValue)) {
-                              var modelVal = controller.$modelValue;
-                              if (!angular.isArray())
-                                  modelVal = [modelVal];
-                              if (options.resultKey)
-                                  scope[options.resultKey] = modelVal;
-                              else
-                                  scope.selectOptions = modelVal;
-                             setTimeout(function () {
-                                  renderController();
-                              }, 0)
-                          }
-                          else if (options.lazyAjax) {
+                      else if (controller.$modelValue && options.remoteSearch && !$select.optionData.length) {
+                          if (options.lazyAjax) {
                               $lazyRequest(function () {
                                  return $select.loadRemote(null, controller.$modelValue);
                               }, 0)
                           }
-                          else {
+                          else
                               $select.loadRemote(null, controller.$modelValue);
-                          }
-                              
-                          
                       }
                       else if ($select.complated)
                           renderController();
-                      
                       validateModel();
-                      $select.oldValue = controller.$modelValue;
 
                   };
                   $select.loadRemote = function (term, data) {
-                      if (!data && !term && options.remoteSearch)
-                          return $q.when('');
-                      
                       scope.$dataLoading = true;
-                      var post = (data && !term) ? true : false;
+                      var post = (data && data.length) ? true : false;
                       var url = buildUrl(term, post)
                       var ajax = {
                           url: url
@@ -500,9 +450,9 @@ var selectApp = angular.module('ngQuantum.select', [
                   if (options.filterable)
                       scope.$watch('filterModel.label', function (newValue, oldValue) {
                           if (options.remoteSearch)
-                              remoteFilter(newValue, oldValue)
+                              remoteFiler(newValue, oldValue)
                           else
-                              localFilter(newValue, oldValue);
+                              localFiler(newValue, oldValue);
 
                           if (searchInput && newValue) {
                               searchInput.css('min-width', newValue.length * 0.7 + 'em')
@@ -520,23 +470,21 @@ var selectApp = angular.module('ngQuantum.select', [
                           });
                       });
                   }
-                  if (angular.isDefined(attr.nqOptions)) {
-                      parsedOptions = $parseOptions(attr.nqOptions);
+                  if (angular.isDefined(attr.ngOptions)) {
+                      var parsedOptions = $parseOptions(attr.ngOptions);
                       var watchedOptions = parsedOptions.$match[7].replace(/\|.+/, '').trim();
                       scope.$watch(watchedOptions, function (newValue, oldValue) {
                           parsedOptions.valuesFn(scope, controller).then(function (values) {
                               if (values && angular.isArray(values)) {
                                   $select.update(values);
                                   $select.render();
-                                  angular.isDefined(attr.ngChange) && scope.$eval(attr.ngChange)
-                                  
                               }
                           });
                       });
                   }
                   else if (targetEl.is('select')) {
                       $q.when(targetEl).then(function (el) {
-                          parsedOptions = $parseOptions(null, el);
+                          var parsedOptions = $parseOptions(null, el);
                           if (parsedOptions.$values && angular.isArray(parsedOptions.$values)) {
                               $select.update(parsedOptions.$values);
                               controller.$render();
@@ -547,10 +495,8 @@ var selectApp = angular.module('ngQuantum.select', [
                       controller.$render();
                   }
                   if (angular.isDefined(attr.ngChange)) {
-                      scope.$parent.$watch(attr.ngModel, function (newValue, oldValue) {
-                          if (!oldValue && newValue !== oldValue) {
-                          }
-                          scope.$parent.$watch(attr.ngModel, function () { })
+                      scope.$parent.$watch(function () { return controller.$modelValue }, function (newValue, oldValue) {
+                          scope.$parent.$eval(attr.ngChange);
                       });
                   }
                   function renderController() {
@@ -558,12 +504,8 @@ var selectApp = angular.module('ngQuantum.select', [
                       var selected, index;
                       clearSelected();
                       if (options.displayType == 'input') {
-                          if (angular.isDefined(controller.$modelValue))
+                          if (controller.$modelValue)
                               renderSelected();
-                          else {
-                              inputItem.parent().find('.active').remove();
-                          }
-                              
                       }
                       else {
                           if (options.multiple && angular.isArray(controller.$modelValue)) {
@@ -577,7 +519,7 @@ var selectApp = angular.module('ngQuantum.select', [
                               }).filter(angular.isDefined)
                               selected = selected.join(options.seperator)
                           } else {
-                              index = $select.$getIndex(controller.$modelValue);
+                              index = $select.$getIndex(controller.$viewValue);
                               if (angular.isDefined(index)) {
                                   $select.optionData[index].selected = true
                                   selected = $select.optionData[index].label
@@ -595,24 +537,15 @@ var selectApp = angular.module('ngQuantum.select', [
                                           $timeout(function () {
                                               scope.$lastSelected && (scope.$lastSelected.selected = false);
                                               controller.$setViewValue(null);
-                                              controller.$render();
+                                              controller.$render()
                                           }, 0)
 
                                       });
                                   element.append(clrIcon)
                               }
                           }
-                          else {
-                              element.html('<span class="place-holder">' + options.placeholder + '</span>');
-                              if ($select.optionData.length && angular.isDefined(controller.$modelValue)) {
-                                  $timeout(function () {
-                                      scope.$lastSelected && (scope.$lastSelected.selected = false);
-                                      controller.$setViewValue(null);
-                                  }, 0)
-                              }
-                              
-                          }
-                             
+                          else
+                              element.html(options.placeholder)
                       }
                   }
                   function renderSelected() {
@@ -631,16 +564,10 @@ var selectApp = angular.module('ngQuantum.select', [
                           })
                       }
                       else {
-                          var index = $select.$getIndex(controller.$modelValue);
+                          var index = $select.$getIndex(controller.$modelValue)
                           if (index > -1) {
                               $select.optionData[index].selected = true
                               inputItem.before(renderItem($select.optionData[index], controller.$modelValue));
-                          } else if (options.autoCreate) {
-                              var item = parsedOptions.parseValue(controller.$modelValue);
-                              
-                              if (!item.label)
-                                  item = scope.$lastSelected;
-                              item && inputItem.before(renderItem(item, controller.$modelValue));
                           }
                       }
                       $select.$isShown &&
@@ -648,26 +575,7 @@ var selectApp = angular.module('ngQuantum.select', [
                   }
                   function renderItem(item, key) {
                       var li = angular.element('<li class="active"></li>')
-                      li.on('click', function (e) {
-                          if (options.multiple) {
-                              e.preventDefault(),
-                              e.stopPropagation();
-                          }
-                          else if (options.autoRender) {
-                              li.hide();
-                              inputItem.show();
-                              setTimeout(function () {
-                                  searchInput.val(item.label);
-                              }, 1000)
-                                searchInput.val(item.label);
-                                searchInput.one('blur', function () {
-                                    li.show();
-                                    inputItem.css('display', '');
-                              })
-                              
-                          }
-                          
-                      })
+                      li.on('click', function (e) { e.preventDefault(), e.stopPropagation() })
                       var closer = angular.element(options.clearIcon)
                                    .one('click', function (e) {
                                        e.preventDefault();
@@ -676,12 +584,13 @@ var selectApp = angular.module('ngQuantum.select', [
                                            controller.$modelValue = controller.$modelValue.splice(key, 1);
                                        }
                                        else
-                                           controller.$setViewValue(null);
-                                       $timeout(function () {
+                                           controller.$modelValue = null
+                                       li.off()
+                                       li.remove()
+                                       scope.$apply(function () {
                                            item.selected = false;
                                            item.filtered = false;
-                                       }, 0)
-                                       li.off().remove();
+                                       })
                                    });
                       return li.append(angular.element('<a></a>').append(item.label).append(closer))
                   }
@@ -702,17 +611,10 @@ var selectApp = angular.module('ngQuantum.select', [
                       }, 100)
                       
                   }
-                  function localFilter(newValue, oldValue) {
+                  function localFiler(newValue, oldValue) {
                       if (!options.customFilter) {
                           if (newValue) {
-                              var filtered = $filter('filter')($select.optionData, function (itm) {
-                                  return itm.label.replace('İ', 'i').replace('ı', 'i').toLowerCase().indexOf(newValue.replace('İ', 'i').replace('ı', 'i').toLowerCase()) > -1;
-                              });
-                              if (!filtered.length && options.onNoMatch) {
-                                  filtered = [parsedOptions.parseValue(options.onNoMatch(scope, { $filterText: newValue }))];
-                                  controller.$setViewValue(filtered[0].value);
-                              }
-                              $select.updateMatches(filtered, isTagsInput);
+                              $select.updateMatches($filter('filter')($select.optionData, scope.filterModel), isTagsInput);
                           }
                           else if (!newValue && oldValue)
                               $select.updateMatches(undefined, isTagsInput)
@@ -737,25 +639,19 @@ var selectApp = angular.module('ngQuantum.select', [
                       }
                       highlightText(newValue)
                   }
-                  function remoteFilter(newValue, oldValue) {
+                  function remoteFiler(newValue, oldValue) {
                       if (newValue) {
                           scope.$remainingChar = options.minChar - newValue.length;
                           scope.$noResultFound = false;
-                          if (options.alwaysRemote || (scope.$remainingChar == 0 && scope.lastTerm != newValue))
+                          if (scope.$remainingChar == 0 && scope.lastTerm != newValue)
                               $select.loadRemote(newValue);
                           else
-                              localFilter(newValue, oldValue);
+                              localFiler(newValue, oldValue);
                       }
                   }
                   function buildUrl(term, isPost) {
                       var url = options.urlPrefix || '';
-                      if (options.evalUrl){
-                          url += isPost && options.postUrl ? scope.$parent.$eval(attr.qoPostUrl) : scope.$parent.$eval(attr.qoUrl);
-                      }
-                          
-                      else {
-                          url += isPost && options.postUrl ? options.postUrl : options.url;
-                      }
+                      url += isPost ? options.postUrl ? options.postUrl : options.url : options.url;
                       if (term) {
                           if (scope.urlParams.length) {
                               angular.forEach(scope.urlParams, function (value, index) {
@@ -795,6 +691,9 @@ var selectApp = angular.module('ngQuantum.select', [
                       return param;
                   }
                   function validateModel() {
+                      if (angular.isDefined(attr.required) || angular.isDefined(attr.ngRequired)) {
+                          controller.$setValidity("required", controller.$modelValue);
+                      }
                       if (options.minRequired) {
                           if (angular.isArray(controller.$modelValue))
                               controller.$setValidity("min-required", controller.$modelValue.length >= options.minRequired);
@@ -802,7 +701,7 @@ var selectApp = angular.module('ngQuantum.select', [
                   }
                   function clearSelected() {
                       angular.forEach($select.optionData, function (item) {
-                          item && (item.selected = false);
+                          item.selected = false;
                       })
                   }
                   return $select;
@@ -817,22 +716,19 @@ var selectApp = angular.module('ngQuantum.select', [
             typeClass: 'tagsInput',
             navClass: 'nav-mixed',
             prefixEvent: 'tagsInput',
-            allowedChars: '[A-Za-z0-9ŞşIıİĞğÜüÇçÖö ]',
+            allowedChars: '[A-Za-z0-9ŞşIıĞğÜüÇçÖö ]',
             clearStrict: true,
             placeholder: 'type...',
             modelIsLabel: true,
             preventDublication: true,
             caseSensitive: false,
             maxTextLength: 30,
-            minTextLength: 3,
-            labelField: 'label',
-            valueField: 'value'
+            minTextLength: 3
         };
         this.$get = [
             '$select',
             '$filter',
-            '$timeout',
-          function ($select, $filter, $timeout) {
+          function ($select, $filter) {
               function TagsInputFactory(element, controller, config, attr, targetEl) {
                   if (config.directive != 'nqTagsInput') {
                       return new $select(element, controller, config, attr, targetEl)
@@ -848,8 +744,6 @@ var selectApp = angular.module('ngQuantum.select', [
                   };
                   $tagsInput.$onKeyEnter = function (e) {
                       if (e.keyCode === 13) {
-                          e.preventDefault();
-                          e.stopPropagation();
                           if (angular.isArray(controller.$modelValue) && !(controller.$modelValue.length < options.maxLength))
                               return false;
                           var label = scope.filterModel.label;
@@ -873,10 +767,10 @@ var selectApp = angular.module('ngQuantum.select', [
                       if (angular.isArray(newValue)) {
                           angular.forEach(newValue, function (val, index) {
                               if (angular.isObject(val)) {
-                                  if (val[options.labelField] || val[options.valueField]) {
+                                  if (val.label || val.value) {
                                       var item = {
-                                          label: val[options.labelField] || val[options.valueField],
-                                          value: val[options.valueField] || val[options.labelField]
+                                          label: val.label || val.value,
+                                          value: val.value || val.label
                                       };
                                       $tagsInput.addOption(item);
                                       $tagsInput.changeOption('modelIsLabel', false)
@@ -893,10 +787,9 @@ var selectApp = angular.module('ngQuantum.select', [
                       }
                   });
                   scope.$parent.$watch(attr.ngModel, function (newValue, oldValue) {
-                      
                       if (newValue) {
-                        controller.$setViewValue(newValue)
-                        $tagsInput.render();
+                          controller.$setViewValue(newValue)
+                          $tagsInput.render();
                       }
                   });
                   return $tagsInput;
@@ -917,82 +810,89 @@ var selectApp = angular.module('ngQuantum.select', [
                   require: ['ngModel', directive],
                   controller: function () {
                   },
-                  compile: function (elm, attrs, transclude) {
-                      var ngOptions = attrs.ngOptions;
-                      if (angular.isDefined(ngOptions)) {
-                          attrs.$set('nqOptions', ngOptions)
-                          elm.removeAttr('ng-options');
-                          elm.removeAttr('data-ng-options');
+                  link: function postLink(scope, element, attr, controllers) {
+
+                      var options = {
+                          $scope: scope
+                      },
+                      ngModel = controllers[0];
+
+                      if (directive == 'nqTagsInput') {
+                          options.displayType = 'input';
+                          options.multiple = true;
                       }
-                      return function postLink(scope, element, attr, controllers) {
+                      options.directive = directive;
 
-                          var options = {
-                              $scope: scope
-                          },
-                          ngModel = controllers[0];
+                      var targetEl = element;
+                      if (attr.ngOptions)
+                          options.grouped = attr.ngOptions.indexOf('group by') > -1;
+                      else if (element.is('select'))
+                          options.grouped = element.find('optgroup').length
 
-                          if (directive == 'nqTagsInput') {
-                              options.displayType = 'input';
-                              options.multiple = true;
-                          }
-                          options.directive = directive;
+                      if (element.is('select') || element.is('input')) {
+                          targetEl.addClass('disable-animation')
+                          targetEl.css('display', 'none');
+                          buildElement()
+                      }
+                      else if (!angular.isDefined(attr.ngOptions)) {
+                          buildElement()
+                          targetEl.addClass('listbox');
+                          var scroller = angular.element('<div tabindex="-1" class="scrollable" role="listbox"></div>');
 
-                          var targetEl = element;
-                          if (attr.nqOptions)
-                              options.grouped = attr.nqOptions.indexOf('group by') > -1;
-                          else if (element.is('select'))
-                              options.grouped = element.find('optgroup').length
-
-                          if (element.is('select') || element.is('input')) {
-                              targetEl.addClass('disable-animation')
-                              targetEl.css('display', 'none');
-                              buildElement()
+                          scroller.append(targetEl.show());
+                          options.targetElement = angular.element('<div tabindex="-1" role="listbox" class="listbox-panel"></div>').append(scroller);
+                      }
+                      else if (attr.qoDisplayType == 'input') {
+                          buildElement();
+                      }
+                      var select = new $tagsInput(element, ngModel, options, attr, targetEl);
+                      controllers[1].addOption = select.addOption;
+                      controllers[1].changeOption = select.changeOption;
+                      controllers[1].select = select.select;
+                      ngModel.$render = select.render;
+                      scope.$on('$destroy', function () {
+                          select.destroy();
+                          options = null;
+                          select = null;
+                      });
+                      function buildElement() {
+                          if (options.displayType == 'input' || attr.qoDisplayType == 'input') {
+                              options.filterable = true;
+                              element = angular.element('<ul class="nav nav-pills select-render-nav form-control"></ul>');
+                              targetEl.hide()
                           }
-                          else if (!angular.isDefined(attr.nqOptions)) {
-                              buildElement()
-                              targetEl.addClass('listbox');
-                              var scroller = angular.element('<div tabindex="-1" class="scrollable" role="listbox"></div>');
-
-                              scroller.append(targetEl.show());
-                              options.targetElement = angular.element('<div tabindex="-1" role="listbox" class="listbox-panel"></div>').append(scroller);
-                          }
-                          else if (attr.qoDisplayType == 'input') {
-                              buildElement();
-                          }
-                          var select = new $tagsInput(element, ngModel, options, attr, targetEl);
-                          controllers[1].addOption = select.addOption;
-                          controllers[1].changeOption = select.changeOption;
-                          controllers[1].select = select.select;
-                          ngModel.$render = select.render;
-                          scope.$on('$destroy', function () {
-                              select.destroy();
-                              options = null;
-                              select = null;
-                          });
-                          function buildElement() {
-                              if (options.displayType == 'input' || attr.qoDisplayType == 'input') {
-                                  options.filterable = true;
-                                  element = angular.element('<ul class="nav nav-pills select-render-nav form-control"></ul>');
-                                  targetEl.hide()
-                              }
-                              else
-                                  element = angular.element('<button type="button" class="btn form-control">Please select...</button>');
-                              targetEl.before(element);
-                          }
+                          else
+                              element = angular.element('<button type="button" class="btn form-control">Please select...</button>');
+                          targetEl.before(element);
                       }
                   }
               };
           }
         ]);
     });
-
+    selectApp.directive('qoDisabled',[function(scope){
+     return{
+         restrict:'A',         
+         link:function(scope, element, attrs, controller){             
+             scope.$watch(function(){
+             return attrs.qoDisabled;
+             },function(newValue,oldValue){             
+             if (angular.lowercase(newValue) === 'true') {
+                    element[0].previousElementSibling.disabled = true;
+                } else {
+                    element[0].previousElementSibling.disabled = false;
+                };            
+             })
+         }         
+     }
+    }])
     selectApp.directive('selectOption', [
       function () {
           return {
               restrict: 'AC',
               scope: true,
-              require: ['?^nqSelect', '?^nqTagsInput'],
-              link: function postLink(scope, element, attr, controllers) {
+              require: '?^nqSelect',
+              link: function postLink(scope, element, attr, controller) {
                   var itemkey, watcher, item = {};
                   if (angular.isDefined(attr.ngRepeat))
                       itemkey = attr.ngRepeat.split(' ')[0];
@@ -1002,7 +902,6 @@ var selectApp = angular.module('ngQuantum.select', [
                           itemkey = parentattr.split(' ')[0];
                   }
                   watcher = itemkey + '.selected';
-                  var controller = controllers[0] || controllers[1];
                   if (controller) {
                       scope.$watch(controller.changeOption, function (newValue, oldValue) {
                           if (angular.isDefined(controller.changeOption))
@@ -1013,12 +912,9 @@ var selectApp = angular.module('ngQuantum.select', [
                       element.attr('role', 'option')
                       item.label = scope.$eval(attr.optionLabel) || attr.optionLabel;
                       item.value = scope.$eval(attr.optionValue) || attr.optionValue || item.label;
-                      
                       scope.$watch(controller.changeOption, function (newValue, oldValue) {
-                          if (angular.isDefined(controller.addOption)) {
+                          if (angular.isDefined(controller.addOption))
                               scope._selectOption = controller.addOption(item);
-                          }
-                              
                       });
 
                       watcher = '_selectOption.selected';

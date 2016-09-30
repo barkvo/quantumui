@@ -334,7 +334,6 @@ angular.module('ngQuantum.scrollbar', ['ngQuantum.services.helpers', 'ngQuantum.
                           if (!isTouch) {
                               $mouse.onWheel(element, mouseWheel);
                               element.on('mouseenter', function (e) {
-                                  visibleBar();
                                   if (/y|both/.test(options.axis) && !scope._scrollHeight)
                                       watchResult();
                                   if (/x|both/.test(options.axis) && !scope._scrollWidth)
@@ -350,55 +349,38 @@ angular.module('ngQuantum.scrollbar', ['ngQuantum.services.helpers', 'ngQuantum.
                               })
                           }
                           else {
-                              var lastTouchSize;
                               element.on('touchstart', function (event) {
-                                  $bar.isScrolling = true, lastTouchSize = 0;
                                   var lastY = $y.stepSize || 0, lastX = $x.stepSize || 0;
-                                  var sOriginalEvent = event.originalEvent || event;
-                                  var sTouch = (sOriginalEvent.touches && sOriginalEvent.touches.length) ?
-                                      sOriginalEvent.touches[0] :
-                                      ((sOriginalEvent.changedTouches && sOriginalEvent.changedTouches.length) ? sOriginalEvent.changedTouches[0] : [sOriginalEvent]);
-                                  var startX = sTouch.pageX;
-                                  var startY = sTouch.pageY;
+                                  var sTouch = event.originalEvent.touches[0] || event.originalEvent.changedTouches[0];
                                   $y.bar && $y.bar.css('visibility', 'visible');
                                   $x.bar && $x.bar.css('visibility', 'visible');
-                                  
-                                  element.on('touchmove', function (evt) {
-                                      lastTouchSize = 15;
-                                      var originalEvent = evt.originalEvent || evt;
-                                      var touch = (originalEvent.touches && originalEvent.touches.length) ?
-                                      originalEvent.touches[0] :
-                                      ((originalEvent.changedTouches && originalEvent.changedTouches.length) ? originalEvent.changedTouches[0] : [originalEvent]);
-                                      var newY = (startY - touch.pageY) + lastY;
-                                      var newX = (startX - touch.pageX) + lastX;
-                                      var returned = false;
+                                  angular.element(document).on('touchmove.scrollbar', function (evt) {
+                                      var touch = evt.originalEvent.touches[0] || evt.originalEvent.changedTouches[0];
+                                      var newY = (sTouch.pageY - touch.pageY) + lastY;
+                                      var newX = (sTouch.pageX - touch.pageX) + lastX;
+                                      var retuned = false;
                                       if (/y|both/.test(options.axis)) {
                                           if (!$y.maxOffset && options.axis == 'y')
-                                              returned = true;
-                                          if (Math.abs(scope.scrollTop - $y.maxOffset) < 1 && sTouch.pageY > touch.pageY)
-                                              returned = true;
-                                          if (scope.scrollTop < 1 && sTouch.pageY < touch.pageY)
-                                              returned = true;
+                                              retuned = true;
+                                          if (scope.scrollTop == $y.maxOffset && sTouch.pageY > touch.pageY)
+                                              retuned = true;
+                                          if (scope.scrollTop == 0 && sTouch.pageY < touch.pageY)
+                                              retuned = true;
                                       }
                                       if (/x|both/.test(options.axis)) {
                                           if (!$x.maxOffset && options.axis == 'x')
-                                              returned = true;
+                                              retuned = true;
                                           if (scope.scrollLeft == $x.maxOffset && sTouch.pageX > touch.pageX)
-                                              returned = true;
+                                              retuned = true;
                                           if (scope.scrollLeft == 0 && sTouch.pageX > touch.pageX)
-                                              returned = true;
+                                              retuned = true;
                                       }
                                       if (options.axis == 'both' && !$y.maxOffset && !$x.maxOffset)
-                                          returned = true;
-                                      if (returned) {
+                                          retuned = true;
+                                      if (retuned)
                                           return true;
-                                      }
-                                          
-                                      
                                       event.preventDefault();
                                       evt.preventDefault();
-                                      $bar.isScrolling = true;
-                                      lastTouchSize = newY;
                                       if (/y|both/.test(options.axis)) {
                                           var step = newY / $y.thumbStep;
                                           var top = (options.step * step), ttop = (step * $y.thumbStep);
@@ -412,13 +394,10 @@ angular.module('ngQuantum.scrollbar', ['ngQuantum.services.helpers', 'ngQuantum.
 
                                   })
                               })
-                              element.on('touchend touchcancel', function (evt) {
+                              angular.element(document).on('touchend.scrollbar touchcancel.scrollbar', function (evt) {
                                   $y.bar && $y.bar.css('visibility', 'hidden');
                                   $x.bar && $x.bar.css('visibility', 'hidden');
-                                  element.off('touchmove');
-                                  
-                                  $bar.isScrolling = lastTouchSize > 12;
-                                  
+                                  angular.element(document).off('touchmove')
                               })
                           }
 
@@ -426,12 +405,7 @@ angular.module('ngQuantum.scrollbar', ['ngQuantum.services.helpers', 'ngQuantum.
                       }
                       $bar.$eventsBuilded = true;
                   }
-                  function visibleBar() {
-                      $y && $y.bar && $y.bar.css('visibilty', '').show();
-                      $y && $y.bar && ($y.bar.visible = true);
-                      $x && $x.bar && $x.bar.css('visibilty', '').show();
-                      $x && $x.bar && ($x.bar.visible = true);
-                  }
+                  
                   function watchResult() {
                       if ($container && $container.height() < 0 || !$container && element && element.height() < 1)
                           return;
@@ -454,7 +428,7 @@ angular.module('ngQuantum.scrollbar', ['ngQuantum.services.helpers', 'ngQuantum.
                           width = element[0].scrollWidth;
                       }
                       if (/y|both/.test(options.axis)) {
-                          if (height > 0 && scope.maxHeight < height && $container && ($container[0].scrollHeight > $container[0].clientHeight)) {
+                          if (height > 0 && scope.maxHeight < height && $container && $container.outerHeight() >= scope.maxHeight && ($container[0].scrollHeight > $container[0].clientHeight)) {
                                   scope._scrollHeight = height, applyY(height);
                               $y.bar && $y.bar.css('visibilty', '').show();
                               $y.bar.visible = true;
@@ -468,7 +442,7 @@ angular.module('ngQuantum.scrollbar', ['ngQuantum.services.helpers', 'ngQuantum.
                           }
                       }
                       if (/x|both/.test(options.axis)) {
-                          if (width > 0 && scope.maxWidth < width && $container && ($container[0].scrollWidth > $container[0].clientWidth)) {
+                          if (width > 0 && scope.maxWidth < width && $container.outerWidth() >= scope.maxWidth && $container && ($container[0].scrollWidth > $container[0].clientWidth)) {
                                   scope._scrollWidth = width, applyX(width);
                               $x.bar && $x.bar.css('visibilty', '').show();
                               $x.bar.visible = true;
@@ -490,16 +464,15 @@ angular.module('ngQuantum.scrollbar', ['ngQuantum.services.helpers', 'ngQuantum.
                               return true;
                           if (!scope._scrollHeight)
                               watchResult();
-                          
                           if (!$y.maxOffset)
                               return true;
                           if (scope.scrollTop >= $y.maxOffset && event.deltaY < 0)
                               return true;
+                          
                           if (scope.scrollTop == 0 && event.deltaY > 0)
                               return true;
                           event.preventDefault();
                           wheelTop(event)
-                          
                       }
                       else if (options.axis == 'x') {
                           if (!$x.bar.visible)
@@ -704,7 +677,7 @@ angular.module('ngQuantum.scrollbar', ['ngQuantum.services.helpers', 'ngQuantum.
                   })
                   var windowResize = function () {
                       $timeout(function () {
-                          $bar && $bar.refresh(200);
+                          $bar.refresh(200)
                       }, 100)
                   };
                   

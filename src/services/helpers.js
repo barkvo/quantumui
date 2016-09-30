@@ -1,6 +1,6 @@
 'use strict';
 angular.module('ngQuantum.services.helpers', [])
-        .factory('$helpers', ['$injector', '$window', function ($injector, $window) {
+        .factory('$helpers', ['$injector', '$window','$interpolate', function ($injector, $window,$interpolate) {
             var fn = {};
             
             fn.injectModule = function (name, base) {
@@ -17,19 +17,7 @@ angular.module('ngQuantum.services.helpers', [])
                 return module;
             }
             fn.isTouch = function () {
-                if (navigator.userAgent.match(/Android/i)
-                    || navigator.userAgent.match(/webOS/i)
-                    || navigator.userAgent.match(/iPhone/i)
-                    || navigator.userAgent.match(/iPad/i)
-                    || navigator.userAgent.match(/iPod/i)
-                    || navigator.userAgent.match(/BlackBerry/i)
-                    || navigator.userAgent.match(/Windows Phone/i)
-                    ) {
-                        return true;
-                    }
-                    else {
-                        return false;
-                    }
+                return "createTouch" in $window.document && window.ontouchstart != null;
             }
             var isTouch = fn.isTouch();
             fn.isHtml = function (value) {
@@ -46,20 +34,18 @@ angular.module('ngQuantum.services.helpers', [])
                 else return defaultval || 0;
             }
             fn.parseConstant = function (value) {
+                var START = $interpolate.startSymbol();
                 if (/^(true|false|\d+|\-?[0-9]\d+)$/.test(value)) {
                     return eval(value)
                 }
                 if (angular.isString(value)) {
-                    if (value[0] == '[' || (value[0] == '{' && value[1] !== '{')) {
+                    if (value[0] == '[' || (value[0] == '{' && value[1] !== START)) {
                         try {
                             return eval(value)
                         }
                         catch (e) {
                             return value.trimStart("'").trimEnd("'")
                         }
-                    }
-                    else if (!value || (value[0] == '{' && value[1] == '{')) {
-                        return 0;
                     }
                     return value.trimStart("'").trimEnd("'")
                 }
@@ -110,9 +96,6 @@ angular.module('ngQuantum.services.helpers', [])
                     return newKey.charAt(0).toLowerCase() + newKey.slice(1);
                 }
                 return key
-            }
-            fn.camelFirst = function (key) {
-                return key.charAt(0).toUpperCase() + key.slice(1);
             }
             fn.formatUrl = function (url, params) {
                 url = url.trimEnd('/')

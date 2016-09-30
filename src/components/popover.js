@@ -115,9 +115,6 @@ angular.module('ngQuantum.popover', ['ngQuantum.popMaster'])
                   }
                   else
                       popover = $popover(element, options, attr);
-
-                  if (attr.popoverModel)
-                      scope[attr.popoverModel] = popover;
                   scope.$on('$destroy', function () {
                       popover = null;
                   })

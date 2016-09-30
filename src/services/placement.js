@@ -30,6 +30,7 @@ angular.module('ngQuantum.services.placement', ['ngQuantum.services.helpers'])
                 
                 offset.top = offset.top + marginTop;
                 offset.left = offset.left + marginLeft;
+
                 if (options.insideFixed) {
                     $target.css(offset);
                 } else

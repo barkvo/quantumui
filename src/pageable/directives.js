@@ -7,27 +7,23 @@
             require: 'nqPageable',
             scope: true,
             controller: ['$scope', '$element', '$attrs', function ($scope, $element, $attrs) {
-                var that = {};
+                var that = this;
                 var options = {
                     $scope: $scope
                 };
                 $element.addClass('pageable-container');
                 $element.css('position', 'relative');
-                var pgbl = new $pageable($element, options, $attrs)
-                that = angular.extend(that, pgbl);
+                that = angular.extend(that, new $pageable($element, options, $attrs));
                 that.$container = $element;
                 $scope.$watch($attrs.nqPageable, function (newVal, oldVal) {
                     that.setModelData(newVal);
                 })
                 if (angular.isDefined($attrs.qoAlias) && angular.isString($attrs.qoAlias)) {
-                    $scope.$parent.$parent[$attrs.qoAlias] = that;
+                    $scope.$parent[$attrs.qoAlias] = that;
+
                 }
                 return that;
-            }],
-            link: function postLink(scope, element, attr, controller) {
-
-              
-            }
+            }]
         };
     }])
     angular.forEach(['pageableRepeat', 'pageableRepeatStart', 'pageableRepeatEnd'], function (directive, dIndex) {

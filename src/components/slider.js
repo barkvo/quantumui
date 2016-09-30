@@ -27,7 +27,6 @@ angular.module('ngQuantum.slider', ['ngQuantum.services.mouse', 'ngQuantum.servi
       function ($rootScope, $document, $mouse, $parse) {
           function Factory(element, config) {
               var $slider = {}, template, track, selection, thumb, thumb2, sizes, body = angular.element('body');
-              var ruller, rullerMax, rullerMin;
               
               var options = angular.extend({}, defaults, config);
               if (defaults.formatValue) {
@@ -102,19 +101,6 @@ angular.module('ngQuantum.slider', ['ngQuantum.services.mouse', 'ngQuantum.servi
                       }
                   }
                   scope.$$postDigest(applyValue);
-              }
-              $slider.setOption = function (field, value) {
-                  value = field == 'max' ? value + (options.step - (value % options.step)) : value - (value % options.step)
-                  options[field] = value;
-                  if (field == 'max' && rullerMax)
-                      rullerMax.html(value);
-                  else if (field == 'min' && rullerMin)
-                      rullerMin.html(value);
-                  findSizes();
-                  if (options.doubleThumb)
-                      $slider.setValues([options.min, options.max]);
-                  else
-                      $slider.setValues(options.min);
               }
               $slider.toggleDisable = function (disbled) {
                   if (disbled) {
@@ -316,12 +302,11 @@ angular.module('ngQuantum.slider', ['ngQuantum.services.mouse', 'ngQuantum.servi
               function findStep() {
                   var diff = (options.max - options.min) / options.step;
                   if (options.direction == 'vertical') {
-                      sizes.stepRate = (options.max - options.min) / sizes.trh;
+                      sizes.stepRate = diff / sizes.trh;
                       sizes.stepSize = sizes.trh / diff;
                   } else {
-                      
-                      sizes.stepRate = (options.max - options.min) / sizes.trw;
-                      sizes.stepSize = sizes.trw / sizes.stepRate;
+                      sizes.stepRate = diff / sizes.trw;
+                      sizes.stepSize = sizes.trw / diff;
                   }
                   options.diff && options.doubleThumb && (sizes.diffPixel = Math.round(sizes.stepSize * options.diff));
                   
@@ -340,7 +325,7 @@ angular.module('ngQuantum.slider', ['ngQuantum.services.mouse', 'ngQuantum.servi
                       
               }
               function buildRuller() {
-                 ruller = angular.element('<div class="slider-ruller"></div>').appendTo(template);
+                  var ruller = angular.element('<div class="slider-ruller"></div>').appendTo(template);
                   if (options.showRuller) {
                       var ticks = angular.element('<div class="slider-ticks"></div>').appendTo(ruller);
                       if (options.tickSize > 20)
@@ -350,14 +335,9 @@ angular.module('ngQuantum.slider', ['ngQuantum.services.mouse', 'ngQuantum.servi
                               ticks.append('<span  class="slider-tick"></span>')
                           }
                   }
-                  
-                  if (options.showLabel) {
-                      var rullerValues = angular.element('<div class="slider-values"></div>');
-                      rullerMin = angular.element('<div class="values-min">' + getValueFormat(options.min) + '</div>');
-                      rullerMax = angular.element('<div class="values-max">' + getValueFormat(options.max) + '</div>');
-                      rullerValues.append(rullerMin).append(rullerMax);
-                      ruller.append(rullerValues);
-                  }
+                  if(options.showLabel)
+                      ruller.append('<div class="slider-values"><div class="values-min">' + getValueFormat(options.min) + '</div><div class="values-max">' + getValueFormat(options.max) + '</div></div>');
+
               }
               $slider.init();
               return $slider;
@@ -379,13 +359,10 @@ angular.module('ngQuantum.slider', ['ngQuantum.services.mouse', 'ngQuantum.servi
             angular.forEach(keys,
                 function (key) {
                     if (angular.isDefined(attr[key])) {
-                        var val = $helpers.parseConstant(attr[key]);
-                        if (val)
-                            options[key] = val;
+                        options[key] = $helpers.parseConstant(attr[key])
                     }
 
                 });
-            
             var slider = new $slider(element, options)
             scope.$watch(attr.ngModel, function (newVal, oldVal) {
                 if (newVal) {
@@ -395,16 +372,6 @@ angular.module('ngQuantum.slider', ['ngQuantum.services.mouse', 'ngQuantum.servi
                     
                 }
             })
-            angular.forEach(['min', 'max'], function (key) {
-                var aKey = 'qs' + $helpers.camelFirst(key);
-
-                if (angular.isDefined(attr[aKey])) {
-                    scope.$watch(attr[aKey], function (newVal, oldVal) {
-                        newVal && slider.setOption(key, newVal);
-                    })
-                }
-            })
-            
             attr.$observe('disabled', function (newVal, oldVal) {
                 if (newVal) {
                     slider.toggleDisable(true);

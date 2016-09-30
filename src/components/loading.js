@@ -14,16 +14,16 @@ angular.module('ngQuantum.loading', ['ngQuantum.services.lazy'])
             placement: 'top',
             container: 'body',
             backdrop: false,
-            timeout: 500,
-            delayHide: 300,
+            timeout: 2000,
+            delayHide: 500,
             theme: false,
             showBar: true,
             showSpinner: true,
             spinnerIcon: '<i class="fic spin-icon fu-spinner-fan spin"></i>',
             busyText: 'Loading...'
         };
-        this.$get = ['$timeout', '$rootScope', '$compile', '$http',
-          function ($timeout, $rootScope, $compile, $http) {
+        this.$get = ['$timeout', '$rootScope', '$compile', '$http','$interpolate',
+          function ($timeout, $rootScope, $compile, $http,$interpolate) {
               function LoadingFactory(config, theme, placement) {
                   var $loading = {};
                   if (angular.isString(config)) {
@@ -38,11 +38,11 @@ angular.module('ngQuantum.loading', ['ngQuantum.services.lazy'])
                   if (!container.length)
                       container = angular.element('body');
                   var scope = $loading.$scope = options.$scope || $rootScope.$new(), cancel;
-                  var showTimeout, hideTimeout;
+
                   var template = angular.element(getTemplate());
                   var place = options.container == 'body' ? 'prepend' : 'append';
                   $compile(template)(scope);
-                  setTimeout(function () {
+                  $timeout(function () {
                       container[place](template);
                   }, 0)
                   
@@ -64,26 +64,21 @@ angular.module('ngQuantum.loading', ['ngQuantum.services.lazy'])
                               scope.currentRate = 0;
                               $loading.updateProgress();
                           }, 0)
-                      showTimeout && $timeout.cancel(showTimeout);
-                      if (options.timeout !== false) {
-                          showTimeout = $timeout(function () {
-                              $timeout.cancel(showTimeout);
-                              $loading.hide();
-                          }, options.timeout);
-                      }
-                      
+                          
+                      options.timeout !== false &&
+                      $timeout(function () {
+                          $loading.hide();
+                      }, options.timeout)
                   };
-                  $loading.hide = function (delay) {
-                      delay = delay || options.delayHide;
-                      if (!$loading.isShown || $http.$pendingRequestCount > 0)
+                  $loading.hide = function () {
+                      if (!$loading.isShown)
                           return;
                       scope.currentRate = 100;
-                      hideTimeout && $timeout.cancel(hideTimeout);
-                      hideTimeout =  $timeout(function () {
+                      $timeout(function () {
                           template.css('display', 'none')
                           scope.currentRate = 0;
                           $loading.isShown = false;
-                      }, delay)
+                      }, options.delayHide)
 
                   };
                   $loading.updateProgress = function (rate) {
@@ -115,13 +110,15 @@ angular.module('ngQuantum.loading', ['ngQuantum.services.lazy'])
 
                   })
                   function getTemplate() {
+                      var START = $interpolate.startSymbol();
+                      var END   = $interpolate.endSymbol();
                       var html = '<div class="loading-container"  ng-class="loadingTheme">'
                                     + '<div class="progress" ng-show="showBar">'
-                                    + '<div class="progress-bar active" ng-class="progressTheme" role="progressbar" ng-style="{\'width\':currentRate + \'%\'}" aria-valuenow="{{currentRate}}" aria-valuemin="0" aria-valuemax="100">'
+                                    + '<div class="progress-bar active" ng-class="progressTheme" role="progressbar" ng-style="{\'width\':currentRate + \'%\'}" aria-valuenow="' + START + 'currentRate' + END+ '" aria-valuemin="0" aria-valuemax="100">'
                                     + '</div>'
                                     + '</div>'
                                     + '<div class="spinner-container">'
-                                        + '<div class="busy-text">'+ options.spinnerIcon +' {{busyText}}</div>'
+                                        + '<div class="busy-text">'+ options.spinnerIcon +' ' + START + 'busyText' + END+ '</div>'
                                     + '</div>'
                                 + '</div>'
                                 + ''

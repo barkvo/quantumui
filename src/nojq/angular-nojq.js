@@ -48,7 +48,7 @@
             "zoom": true
         };
         function trimStart(str) {
-            while (str && str.length && str.charAt(0) === ' ') {
+            while (str && str.length && str.charAt[0] === ' ') {
                 str = str.slice(1, str.length - 1)
             }
             return str;
@@ -349,25 +349,17 @@
             var style = {
                 position: elem.style.position || '',
                 visibilty: elem.style.visiblity || '',
-                display: elem.style.display != 'none' ? elem.style.display : '',
+                display: elem.style.display || '',
                 overflow: elem.style.overflow || '',
             }
             style[dimension] = elem.style[dimension];
-            var minsize = dimension === 'width' ? elem.style.minWidth : elem.style.minHeight;
-            $elm.css('min-' + dimension, 0);
-            var paddSize = getPadSize($elm, dimension);
-           
             if (show) {
-                $elm.css({ 'position': 'absolute' });
-                $elm.css({'visibilty': 'hidden' });
+                $elm.css({ 'visibilty': 'hidden' });
                 $elm.css('display', 'block');
-                paddSize = getPadSize($elm, dimension);
-                size = $elm[dimension]() + paddSize;
-                dimension === 'width' ? $elm.css({ 'padding-left': 0, 'padding-right': 0 }) : $elm.css({ 'padding-top': 0, 'padding-bottom': 0 });
-                $elm[dimension](0);
+                size = $elm[dimension]();
                 $elm.css(style);
-                $elm.show();
             }
+           
             !size && (size = 2)
             var unitSize = 10,
                 lastSize = show ? 0 : size;
@@ -380,25 +372,14 @@
                 unitSize = (size / (time / ((now - start) / i) || 1));
                 $elm[dimension](lastSize);
                 lastSize = show ? (lastSize + unitSize) : lastSize - unitSize;
-                if (lastSize > paddSize && show)
-                    $elm.css('padding', '');
-               else if (lastSize < paddSize + 1 && !show)
-                    $elm.css('padding', 0);
                 i++;
                 if ((now - start) >= time) {
                     clearInterval(interval);
                     interval = null;
                     $elm.css(style);
                     callback && callback();
-                    if (!show)
-                        $elm.hide();
-                    else
-                        $elm.show();
-                        
-                    $elm.css('min-' + dimension, minsize);
-                    $elm.css('padding', '');
                 }
-            }, 25);
+            }, 1);
            
             setTimeout(function () {
                 interval && clearInterval(interval);
@@ -417,21 +398,6 @@
                 return mathches;
 
             }
-
-        }
-        function getPadSize($elm, dimension) {
-            var paddSize = 0;
-            if (dimension === 'width') {
-                var lp = parseInt($elm.css('padding-left'));
-                var rp = parseInt($elm.css('padding-right'));
-                paddSize += lp + rp;
-            }
-            else {
-                var tp = parseInt($elm.css('padding-top'));
-                var bp = parseInt($elm.css('padding-bottom'));
-                paddSize += tp + bp;
-            }
-            return paddSize;
 
         }
         var jqLite = angular.element;
@@ -744,33 +710,11 @@
                     );
 
                 } else {
-                    if (navigator.userAgent.toLowerCase().indexOf('firefox') > -1 && elem[0].tagName == 'BODY') {
-                        document.documentElement.scrollTop = val;
-                    } else
-                        elem[0][method] = val;
+                    elem[0][method] = val;
                 }
                 return this;
             };
         });
-        jqLite.prototype.scrollTopAnimate = function (size, duration) {
-            if (!this.length)
-                return this;
-            if (!duration || !angular.isNumber(duration) || duration < 10)
-                return this;
-            var that = angular.element(this[0]);
-            var from = that[0].scrollTop,
-                to = size,
-                unit = Math.abs((from - to) / duration);
-            
-            var start = new Date().getTime(),
-                timer = setInterval(function () {
-                    var step = Math.min(1, (new Date().getTime() - start) / duration);
-                    that.scrollTop((from + step * (to - from)) + unit);
-                    if (step == 1) clearInterval(timer);
-                }, 15);
-            setTimeout(function () { timer && clearInterval(timer); }, 3000)
-            return this;
-        };
         jqLite.prototype.show = function () {
             return showHide(this, true);
         };
@@ -891,9 +835,8 @@
         var _jqLite = angular.element;
         function JQLite(element) {
             if (angular.isString(element)) {
-                element = element.replace(/(?:\r\n|\r|\n)/g, '').replace(/\s\s+/g, ' ');
                 element = trimStart(element);
-                if (element.charAt(0) !== '<' || (element.charAt(0) == ' ' && element.charAt(1) !== '<')) {
+                if (element.charAt(0) !== '<') {
                     if (element.indexOf(':visible') > -1)
                         return filterVisible(element);
                     element = document.querySelectorAll(element);

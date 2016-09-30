@@ -55,7 +55,6 @@
                 return {
                     restrict: 'A',
                     require: 'ngModel',
-                    scope:false,
                     link: function postLink(scope, element, attr, controller) {
                         var options = $button.defaults;
                         directive = directive.toLowerCase();
@@ -76,19 +75,17 @@
                         }
                         attr.showTick == 'left' && activeElement.addClass('tick-left')
                         angular.isDefined(attr.checked) && controller.$setViewValue(trueValue);
-                        var sScope = angular.isDefined(scope.$index) ? scope.$parent : scope;
-                        sScope.$watch(attr.ngModel, function (newValue, oldValue) {
-                            var isActive = angular.equals($helpers.parseConstant(newValue), trueValue);
+
+                        scope.$watch(attr.ngModel, function (newValue, oldValue) {
+                            var isActive = angular.equals($helpers.parseConstant(controller.$modelValue), trueValue);
                             !isActive && element.removeAttr('checked');
-                            activeElement = isInput ? element.parent() : element;
-                            !isActive ? activeElement.removeClass(options.activeClass) : activeElement.addClass(options.activeClass);
+                            activeElement.toggleClass(options.activeClass, isActive);
                         });
                         if (!isInput) {
-                            element.on(options.toggleEvent, function () {
+                            element.bind(options.toggleEvent, function () {
                                 var viewValue = directive == 'radio' ? trueValue : controller.$modelValue ? $helpers.parseConstant(controller.$modelValue) == trueValue ? falseValue : trueValue : trueValue;
-                                sScope.$apply(function () {
-                                    controller.$setViewValue(viewValue);
-                                });
+                                controller.$setViewValue(viewValue);
+                                scope.$apply();
                             });
                         }
                     }

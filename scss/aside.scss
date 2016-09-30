@@ -93,26 +93,11 @@
     height:100%;
     max-height:100%;
     padding:0;
-    color :inherit;
-    &:extend(.clearfix all);
-
-    .nav {
-        color :inherit;
-        > li{
-            color :inherit;
-            > a{
-                color :inherit;
-                white-space:nowrap;
-            }
-        }
-    }
+    @include clearfix;
 }
 
 .aside-fixed {
     position:fixed;
-    bottom:0;
-    -webkit-backface-visibility: hidden; 
-    -webkit-transform: translateZ(0);
 }
 .aside-absolute {
     position:absolute;
@@ -190,7 +175,7 @@
     } 
     &.left-off-canvas-all,
     &.left-off-canvas-desktop  {
-        width:calc(~'100% + #{$aside-width}');
+        @include calc(width, "100% + #{$aside-width}");
     }
     &.left-off-canvas-all,
     &.left-off-canvas-desktop,
@@ -245,7 +230,7 @@
     }
     &.right-off-canvas-all,
     &.right-off-canvas-desktop  {
-        width:calc(~'100% + #{$aside-width}');
+        @include calc(width, "100% + #{$aside-width}");
         margin-left: -$aside-width;
     }
     &.right-off-canvas-all,
@@ -263,9 +248,7 @@
 }
 .right-aside-relative {
 }
-.content-wrapper {
-        @include transition(margin $aside-transition-duration linear);
-}
+
 [class*="left-off-canvas"],
 [class*="right-off-canvas"] {
         @include transition(margin, width, $aside-transition-duration linear);
@@ -279,7 +262,7 @@
     .aside-header {
         background-color:darken($aside-default-bg, 7%);
         border-bottom:1px solid darken($aside-default-bg, 12%);
-        @include box-shadow(0 1px 2px 0px rgba(50, 50, 50, 0.1));
+        @include box-shadow(1px 1px 2px 0px rgba(50, 50, 50, 0.1));
         
     }
     .aside-footer {
@@ -304,29 +287,3 @@
         padding:0;
     }
 }
-@media (max-width: $screen-sm-min) {
-    [class*="-off-canvas-mobile"] {
-        .content-wrapper {
-            width:100%;
-        }
-    } 
-}
-@media (max-width: $screen-md-min) {
-    [class*="-off-canvas-touches"] {
-        .content-wrapper {
-            width:100%;
-        }
-    } 
-}
-@media (max-width: $screen-lg-min) {
-    [class*="-off-canvas-desktop"] {
-        .content-wrapper {
-            width:100%;
-        }
-    } 
-}
-[class*="-off-canvas-all"] {
-        .content-wrapper {
-            width:100%;
-        }
-    }

@@ -4,7 +4,6 @@ angular.module('ngQuantum.pageable.editing')
     'use strict';
     $templateCache.put('pageable/editing.panel.tpl.html',
              '<div class="panel pageable-edit-panel panel-stretch" ng-class="$panelClasses">'
-               + '<div ng-if="$showBackdrop" class="panel-backdrop"></div>'
                + '<div class="panel-heading">'
                     +'<h2 class="panel-title" ng-bind-html="panelTitle || defaultTitle"></h2>'
                +'</div>'
@@ -21,5 +20,4 @@ angular.module('ngQuantum.pageable.editing')
                +'</div>'
            + '</div>'
     );
-
 }])

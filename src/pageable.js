@@ -10,7 +10,6 @@ angular.module('ngQuantum.pageable', [
     'ngQuantum.pageable.zeroresult',
     'ngQuantum.pageable.blocker',
     'ngQuantum.pageable.editing',
-    'ngQuantum.pageable.filtering',
     'ngQuantum.pageable.results',
     'ngQuantum.pageable.scroll'
 ])
