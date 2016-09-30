@@ -4339,13 +4339,9 @@ angular.module('ngQuantum.datepicker', [
                       options.showYears && scrollYear();
                   }
                   function apply(fn) {
-                      if (!scope.$$phase) {
-                          scope.$apply(function () {
-                              fn();
-                          })
-                      }
-                      else
-                          fn();
+                    $timeout(function(){
+                        fn();
+                     });
                   }
 
                   return $picker;
